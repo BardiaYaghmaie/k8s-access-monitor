@@ -233,7 +233,10 @@ class KubernetesAccessMonitor:
         logger.info(f"Access collection completed. Logs saved to {self.output_file}")
 
 def main():
-    monitor = KubernetesAccessMonitor()
+    # Always use environment variables for configuration in containers
+    input_file = os.getenv('INPUT_FILE', 'input.json')
+    output_file = os.getenv('OUTPUT_FILE', '/tmp/access_logs.jsonl')
+    monitor = KubernetesAccessMonitor(input_file=input_file, output_file=output_file)
     monitor.collect_and_log_accesses()
 
 if __name__ == "__main__":
