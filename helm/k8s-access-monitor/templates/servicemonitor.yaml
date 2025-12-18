@@ -1,0 +1,16 @@
+{{- if .Values.metricsExporter.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "k8s-access-monitor.fullname" . }}-metrics
+  labels:
+    {{- include "k8s-access-monitor.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "k8s-access-monitor.selectorLabels" . | nindent 4 }}
+  endpoints:
+    - port: metrics
+      interval: {{ .Values.metricsExporter.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.metricsExporter.serviceMonitor.scrapeTimeout }}
+{{- end }}

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "k8s-access-monitor.fullname" . }}-metrics
+  labels:
+    {{- include "k8s-access-monitor.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.metricsExporter.port }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+  selector:
+    {{- include "k8s-access-monitor.selectorLabels" . | nindent 4 }}

@@ -1,0 +1,24 @@
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY src/sidecar.py .
+
+# Create logs directory
+RUN mkdir -p /app/logs
+
+# Set environment variables
+ENV PYTHONPATH=/app
+
+# Default environment variables
+ENV ELASTICSEARCH_URL=http://elasticsearch:9200
+ENV ELASTICSEARCH_INDEX=k8s-access-logs
+ENV CONTINUOUS_MODE=true
+
+# Run the sidecar
+CMD ["python", "sidecar.py"]

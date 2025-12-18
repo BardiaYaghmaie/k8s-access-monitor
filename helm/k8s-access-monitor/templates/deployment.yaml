@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "k8s-access-monitor.fullname" . }}
+  labels:
+    {{- include "k8s-access-monitor.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "k8s-access-monitor.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "k8s-access-monitor.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.securityContext }}
+      securityContext:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "k8s-access-monitor.serviceAccountName" . }}
+      containers:
+        {{- if .Values.sidecar.enabled }}
+        - name: sidecar
+          image: "{{ .Values.sidecar.image.repository }}:{{ .Values.sidecar.image.tag }}"
+          imagePullPolicy: {{ .Values.sidecar.image.pullPolicy }}
+          volumeMounts:
+            - name: logs
+              mountPath: /app/logs
+          env:
+            - name: PYTHONPATH
+              value: "/app"
+            - name: ELASTICSEARCH_URL
+              value: "{{ .Values.sidecar.elasticsearch.url }}"
+            - name: ELASTICSEARCH_INDEX
+              value: "{{ .Values.sidecar.elasticsearch.index }}"
+            - name: CONTINUOUS_MODE
+              value: "true"
+          resources:
+            {{- toYaml .Values.sidecar.resources | nindent 12 }}
+        {{- end }}
+
+        {{- if .Values.metricsExporter.enabled }}
+        - name: metrics-exporter
+          image: "{{ .Values.metricsExporter.image.repository }}:{{ .Values.metricsExporter.image.tag }}"
+          imagePullPolicy: {{ .Values.metricsExporter.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.metricsExporter.port }}
+              name: metrics
+          volumeMounts:
+            - name: input-config
+              mountPath: /app/input.json
+              subPath: input.json
+          env:
+            - name: PYTHONPATH
+              value: "/app"
+            - name: METRICS_PORT
+              value: "{{ .Values.metricsExporter.port }}"
+            - name: INPUT_FILE
+              value: "/app/input.json"
+          resources:
+            {{- toYaml .Values.metricsExporter.resources | nindent 12 }}
+        {{- end }}
+
+      volumes:
+        - name: input-config
+          configMap:
+            name: {{ include "k8s-access-monitor.fullname" . }}-config
+        - name: logs
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

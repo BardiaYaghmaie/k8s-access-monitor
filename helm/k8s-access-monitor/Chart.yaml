@@ -1,0 +1,18 @@
+apiVersion: v2
+name: k8s-access-monitor
+description: Kubernetes Access Monitoring and Analysis System
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+keywords:
+  - kubernetes
+  - security
+  - monitoring
+  - rbac
+  - access-control
+home: https://github.com/your-org/k8s-access-monitor
+sources:
+  - https://github.com/your-org/k8s-access-monitor
+maintainers:
+  - name: Security Team
+    email: security@company.com

@@ -1,0 +1,54 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "k8s-access-monitor.fullname" . }}-collector
+  labels:
+    {{- include "k8s-access-monitor.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.mainApp.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- include "k8s-access-monitor.selectorLabels" . | nindent 12 }}
+        spec:
+          {{- with .Values.securityContext }}
+          securityContext:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          serviceAccountName: {{ include "k8s-access-monitor.serviceAccountName" . }}
+          containers:
+            - name: collector
+              image: "{{ .Values.mainApp.image.repository }}:{{ .Values.mainApp.image.tag }}"
+              imagePullPolicy: {{ .Values.mainApp.image.pullPolicy }}
+              volumeMounts:
+                - name: input-config
+                  mountPath: /app/input.json
+                  subPath: input.json
+                - name: logs
+                  mountPath: /app/logs
+              env:
+                - name: PYTHONPATH
+                  value: "/app"
+              resources:
+                {{- toYaml .Values.mainApp.resources | nindent 16 }}
+          volumes:
+            - name: input-config
+              configMap:
+                name: {{ include "k8s-access-monitor.fullname" . }}-config
+            - name: logs
+              emptyDir: {}
+          restartPolicy: OnFailure
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}

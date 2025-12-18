@@ -1,0 +1,229 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Kubernetes Access Monitoring - Elasticsearch",
+    "tags": ["kubernetes", "security", "access-control"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "Users with Access Overview",
+        "type": "table",
+        "targets": [
+          {
+            "refId": "A",
+            "query": {
+              "bool": {
+                "must": [
+                  {
+                    "exists": {
+                      "field": "username"
+                    }
+                  }
+                ]
+              }
+            },
+            "metrics": [
+              {
+                "id": "1",
+                "type": "count"
+              }
+            ],
+            "bucketAggs": [
+              {
+                "id": "2",
+                "type": "terms",
+                "field": "username",
+                "settings": {
+                  "size": "100",
+                  "order": "desc",
+                  "orderBy": "_count"
+                }
+              }
+            ],
+            "timeField": "@timestamp"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Users with Specific Permissions",
+        "type": "table",
+        "targets": [
+          {
+            "refId": "A",
+            "query": {
+              "bool": {
+                "must": [
+                  {
+                    "nested": {
+                      "path": "flattened_accesses",
+                      "query": {
+                        "bool": {
+                          "must": [
+                            {
+                              "term": {
+                                "flattened_accesses.resource": "$resource"
+                              }
+                            },
+                            {
+                              "term": {
+                                "flattened_accesses.verb": "$verb"
+                              }
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            },
+            "timeField": "@timestamp"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "Access Timeline",
+        "type": "histogram",
+        "targets": [
+          {
+            "refId": "A",
+            "query": {
+              "bool": {
+                "must": [
+                  {
+                    "exists": {
+                      "field": "@timestamp"
+                    }
+                  }
+                ]
+              }
+            },
+            "metrics": [
+              {
+                "id": "1",
+                "type": "count"
+              }
+            ],
+            "bucketAggs": [
+              {
+                "id": "2",
+                "type": "date_histogram",
+                "field": "@timestamp",
+                "settings": {
+                  "interval": "1h"
+                }
+              }
+            ],
+            "timeField": "@timestamp"
+          }
+        ],
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 8
+        }
+      },
+      {
+        "id": 4,
+        "title": "User Access Details",
+        "type": "table",
+        "targets": [
+          {
+            "refId": "A",
+            "query": {
+              "bool": {
+                "must": [
+                  {
+                    "term": {
+                      "username": "$username"
+                    }
+                  }
+                ]
+              }
+            },
+            "timeField": "@timestamp"
+          }
+        ],
+        "gridPos": {
+          "h": 12,
+          "w": 24,
+          "x": 0,
+          "y": 16
+        }
+      }
+    ],
+    "time": {
+      "from": "now-24h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "templating": {
+      "list": [
+        {
+          "name": "username",
+          "type": "query",
+          "query": {
+            "query": {
+              "bool": {
+                "must": [
+                  {
+                    "exists": {
+                      "field": "username"
+                    }
+                  }
+                ]
+              }
+            },
+            "field": "username"
+          }
+        },
+        {
+          "name": "resource",
+          "type": "custom",
+          "options": [
+            {"text": "pods", "value": "pods"},
+            {"text": "secrets", "value": "secrets"},
+            {"text": "configmaps", "value": "configmaps"},
+            {"text": "services", "value": "services"},
+            {"text": "deployments", "value": "deployments"}
+          ]
+        },
+        {
+          "name": "verb",
+          "type": "custom",
+          "options": [
+            {"text": "get", "value": "get"},
+            {"text": "list", "value": "list"},
+            {"text": "create", "value": "create"},
+            {"text": "update", "value": "update"},
+            {"text": "delete", "value": "delete"},
+            {"text": "exec", "value": "exec"}
+          ]
+        }
+      ]
+    },
+    "annotations": {
+      "list": []
+    },
+    "refresh": "5m",
+    "schemaVersion": 27,
+    "version": 0,
+    "links": []
+  }
+}

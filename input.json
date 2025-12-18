@@ -1,0 +1,78 @@
+{
+  "metadata": {
+    "timestamp": "2025-12-10T15:00:00Z",
+    "version": "v1"
+  },
+  "data": [
+    {
+      "configs": [
+        {
+          "id": "36c0e6b3-ce48-4491-a591-47aebeb3d24f",
+          "data": "eyJzb3VyY2UiOiAiQUQiLCAibGFzdF91cGRhdGVkIjogIjIwMjUtMTAtMTJUMTM6MjI6MDNaIiwgInJvd3NfYWZmZWN0ZWQiOiAiOCIsICJyZXBsYWNlIjogZmFsc2V9Cg=="
+        },
+        {
+          "id": "16f99437-abb8-4827-9322-d04b6dbab7df",
+          "data": "eyJzb3VyY2UiOiAiTERBUCIsICJsYXN0X3VwZGF0ZWQiOiAiMjAyNS0xMS0xOFQxNDoxNToyNFoiLCAicm93c19hZmZlY3RlZCI6ICI4IiwgInJlcGxhY2UiOiBmYWxzZX0K"
+        }
+      ],
+      "internals": {
+        "03d898bf-664b-45e0-a57e-88006ab12929": {
+          "source": "36c0e6b3-ce48-4491-a591-47aebeb3d24f",
+          "username": "mohammad.jafari",
+          "groups": ["sre-production", "cluster-readonly"],
+          "first_name": "Mohammad",
+          "last_name": "Jafari"
+        },
+        "f1c7a2d4-89b0-4c1f-a8f2-9876abcd1234": {
+          "source": "16f99437-abb8-4827-9322-d04b6dbab7df",
+          "username": "jafar.mohammadi",
+          "groups": ["dev", "qa"],
+          "first_name": "Jafar",
+          "last_name": "Mohammadi"
+        },
+        "a2b3c4d5-1234-5678-9101-112131415161": {
+          "source": "36c0e6b3-ce48-4491-a591-47aebeb3d24f",
+          "username": "ali.ahmadi",
+          "groups": ["devops", "sre-production"],
+          "first_name": "Ali",
+          "last_name": "Ahmadi"
+        },
+        "b3c4d5e6-2345-6789-1011-121314151617": {
+          "source": "16f99437-abb8-4827-9322-d04b6dbab7df",
+          "username": "sara.mohammadi",
+          "groups": ["qa", "cluster-readonly"],
+          "first_name": "Sara",
+          "last_name": "Mohammadi"
+        },
+        "c4d5e6f7-3456-7891-0112-131415161718": {
+          "source": "36c0e6b3-ce48-4491-a591-47aebeb3d24f",
+          "username": "reza.karimi",
+          "groups": ["dev", "sre-production"],
+          "first_name": "Reza",
+          "last_name": "Karimi"
+        },
+        "d5e6f7g8-4567-8910-1121-314151617181": {
+          "source": "36c0e6b3-ce48-4491-a591-47aebeb3d24f",
+          "username": "neda.ahmadi",
+          "groups": ["dev", "qa"],
+          "first_name": "Neda",
+          "last_name": "Ahmadi"
+        },
+        "e6f7g8h9-5678-9101-2131-415161718192": {
+          "source": "16f99437-abb8-4827-9322-d04b6dbab7df",
+          "username": "amir.karimi",
+          "groups": ["devops", "sre-production"],
+          "first_name": "Amir",
+          "last_name": "Karimi"
+        },
+        "f7g8h9i0-6789-1012-3141-516171819203": {
+          "source": "36c0e6b3-ce48-4491-a591-47aebeb3d24f",
+          "username": "leila.mohammadi",
+          "groups": ["qa", "cluster-readonly"],
+          "first_name": "Leila",
+          "last_name": "Mohammadi"
+        }
+      }
+    }
+  ]
+}

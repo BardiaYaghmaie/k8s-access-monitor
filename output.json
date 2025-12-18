@@ -1,0 +1,17 @@
+{
+  "username": "mohammad.jafari",
+  "groups": ["sre-production", "cluster-readonly"],
+  "accesses": [
+    {
+      "namespace": "<namespace>",
+      "resources": {
+        "pods": ["delete", "read"],
+        "configMaps": ["create", "update"],
+        "secrets": ["read"]
+      },
+      "is_cluster": false
+    }
+  ],
+  "timestamp": "<TIMESTAMP>"
+}
+

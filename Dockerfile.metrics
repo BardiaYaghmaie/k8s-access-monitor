@@ -1,0 +1,22 @@
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code and input data
+COPY src/metrics_exporter.py .
+COPY input.json .
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV METRICS_PORT=8000
+ENV INPUT_FILE=/app/input.json
+
+# Expose metrics port
+EXPOSE 8000
+
+# Run the metrics exporter
+CMD ["python", "metrics_exporter.py"]

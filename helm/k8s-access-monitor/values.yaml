@@ -1,0 +1,98 @@
+# Default values for k8s-access-monitor
+
+# Main application configuration
+mainApp:
+  enabled: true
+  image:
+    repository: k8s-access-monitor
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  schedule: "*/5 * * * *"  # Run every 5 minutes
+  inputConfig: |
+    {
+      "metadata": {
+        "timestamp": "2025-12-10T15:00:00Z",
+        "version": "v1"
+      },
+      "data": [
+        {
+          "configs": [
+            {
+              "id": "36c0e6b3-ce48-4491-a591-47aebeb3d24f",
+              "data": "eyJzb3VyY2UiOiAiQUQiLCAibGFzdF91cGRhdGVkIjogIjIwMjUtMTAtMTJUMTM6MjI6MDNaIiwgInJvd3NfYWZmZWN0ZWQiOiAiOCIsICJyZXBsYWNlIjogZmFsc2V9Cg=="
+            }
+          ],
+          "internals": {}
+        }
+      ]
+    }
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# Sidecar configuration
+sidecar:
+  enabled: true
+  image:
+    repository: k8s-access-monitor-sidecar
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  elasticsearch:
+    url: "http://elasticsearch:9200"
+    index: "k8s-access-logs"
+  resources:
+    limits:
+      cpu: 300m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# Metrics exporter configuration
+metricsExporter:
+  enabled: true
+  image:
+    repository: k8s-access-monitor-metrics
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  port: 8000
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    scrapeTimeout: 10s
+  resources:
+    limits:
+      cpu: 200m
+      memory: 128Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+
+# Service account configuration
+serviceAccount:
+  create: true
+  name: k8s-access-monitor-sa
+  annotations: {}
+
+# RBAC configuration
+rbac:
+  create: true
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
