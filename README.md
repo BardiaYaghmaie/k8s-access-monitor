@@ -146,9 +146,23 @@ data:
     - job_name: 'k8s-access-monitor'
       static_configs:
       - targets: ['k8s-access-monitor-metrics.k8s-access-monitor.svc.cluster.local:8000']
+      scrape_interval: 15s
 EOF
 
-# Deploy Grafana
+# Create Grafana secret first
+kubectl create secret generic grafana-admin \
+  --from-literal=password=admin \
+  -n monitoring
+
+# Create Grafana dashboard provisioning
+kubectl apply -f grafana-dashboard-provisioning.yaml
+
+# Create dashboard ConfigMap
+kubectl create configmap grafana-dashboards \
+  --from-file=dashboards/ \
+  -n monitoring
+
+# Deploy Grafana with auto-provisioning
 kubectl apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
@@ -178,6 +192,27 @@ spec:
               key: password
         - name: GF_USERS_ALLOW_SIGN_UP
           value: "false"
+        volumeMounts:
+        - name: grafana-storage
+          mountPath: /var/lib/grafana
+        - name: dashboard-provisioning
+          mountPath: /etc/grafana/provisioning/dashboards
+        - name: dashboards
+          mountPath: /etc/grafana/provisioning/dashboards/default
+        - name: datasource-provisioning
+          mountPath: /etc/grafana/provisioning/datasources
+      volumes:
+      - name: grafana-storage
+        emptyDir: {}
+      - name: dashboard-provisioning
+        configMap:
+          name: grafana-dashboard-provisioning
+      - name: dashboards
+        configMap:
+          name: grafana-dashboards
+      - name: datasource-provisioning
+        configMap:
+          name: grafana-datasource-provisioning
 ---
 apiVersion: v1
 kind: Service
@@ -190,12 +225,33 @@ spec:
     targetPort: 3000
   selector:
     app: grafana
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasource-provisioning
+  namespace: monitoring
+data:
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+    - name: Elasticsearch
+      type: elasticsearch
+      access: proxy
+      url: http://elasticsearch.monitoring.svc.cluster.local:9200
+      database: "[k8s-access-logs-]YYYY.MM.DD"
+      jsonData:
+        index: "k8s-access-logs-*"
+        timeField: "@timestamp"
+        esVersion: "7.0.0"
+    - name: Prometheus
+      type: prometheus
+      access: proxy
+      url: http://prometheus.monitoring.svc.cluster.local:9090
+      isDefault: true
+      jsonData:
+        timeInterval: "15s"
 EOF
-
-# Create Grafana secret
-kubectl create secret generic grafana-admin \
-  --from-literal=password=admin \
-  -n monitoring
 ```
 
 ### 3. Deploy Application
@@ -231,9 +287,15 @@ kubectl logs job/test-run -n k8s-access-monitor
 # Check metrics
 kubectl port-forward svc/k8s-access-monitor-metrics -n k8s-access-monitor 8000:8000
 curl http://localhost:8000/metrics
+
+# Run comprehensive test
+chmod +x test-system.sh
+./test-system.sh
 ```
 
 ### 5. Access Dashboards
+
+**Dashboards are auto-imported!** Just access Grafana and they'll be available.
 
 ```bash
 # Grafana
