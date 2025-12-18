@@ -36,6 +36,8 @@ spec:
               env:
                 - name: PYTHONPATH
                   value: "/app"
+                - name: OUTPUT_FILE
+                  value: "/tmp/access_logs.jsonl"
                 {{- if .Values.global.security.createSecrets }}
                 # Application secrets from Kubernetes secrets
                 - name: API_KEY

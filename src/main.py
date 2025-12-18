@@ -25,7 +25,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 class KubernetesAccessMonitor:
-    def __init__(self, input_file: str = "input.json", output_file: str = "access_logs.jsonl"):
+    def __init__(self, input_file: str = "input.json", output_file: str = None):
+        # Allow overriding output file via environment variable
+        if output_file is None:
+            output_file = os.getenv('OUTPUT_FILE', '/tmp/access_logs.jsonl')
         self.input_file = input_file
         self.output_file = output_file
         self.users_data = self._load_users_data()
@@ -184,8 +187,11 @@ class KubernetesAccessMonitor:
 
         return accesses
 
-    def _user_matches_subjects(self, username: str, subjects: List[Dict]) -> bool:
+    def _user_matches_subjects(self, username: str, subjects) -> bool:
         """Check if username matches any of the subjects in a binding"""
+        if not subjects:
+            return False
+
         for subject in subjects:
             subject_kind = subject.get('kind', '')
             subject_name = subject.get('name', '')
