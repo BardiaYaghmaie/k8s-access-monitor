@@ -90,7 +90,7 @@ sidecar:
     tag: "latest"
     pullPolicy: IfNotPresent
   elasticsearch:
-    url: "http://elasticsearch:9200"
+    url: "http://elasticsearch.monitoring.svc.cluster.local:9200"
     index: "k8s-access-logs"
   resources:
     limits:

@@ -37,7 +37,11 @@ spec:
                 - name: PYTHONPATH
                   value: "/app"
                 - name: OUTPUT_FILE
-                  value: "/tmp/access_logs.jsonl"
+                  value: "/app/logs/access_logs.jsonl"
+                - name: ELASTICSEARCH_URL
+                  value: "{{ .Values.sidecar.elasticsearch.url }}"
+                - name: ELASTICSEARCH_INDEX
+                  value: "{{ .Values.sidecar.elasticsearch.index }}"
                 {{- if .Values.global.security.createSecrets }}
                 # Application secrets from Kubernetes secrets
                 - name: API_KEY

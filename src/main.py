@@ -16,6 +16,11 @@ import logging
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 
+try:
+    from elasticsearch import Elasticsearch
+except ImportError:
+    Elasticsearch = None
+
 # Security: Load secrets from environment variables (set by Kubernetes secrets)
 API_KEY = os.getenv('API_KEY', 'dummy-api-key')
 JWT_SECRET = os.getenv('JWT_SECRET', 'dummy-jwt-secret')
@@ -33,6 +38,18 @@ class KubernetesAccessMonitor:
         self.output_file = output_file
         self.users_data = self._load_users_data()
         self.k8s_client = self._init_kubernetes_client()
+        
+        # Initialize Elasticsearch if available
+        self.es_client = None
+        es_url = os.getenv('ELASTICSEARCH_URL', 'http://elasticsearch:9200')
+        es_index = os.getenv('ELASTICSEARCH_INDEX', 'k8s-access-logs')
+        if Elasticsearch:
+            try:
+                self.es_client = Elasticsearch([es_url])
+                logger.info(f"Connected to Elasticsearch at {es_url}")
+            except Exception as e:
+                logger.warning(f"Failed to connect to Elasticsearch: {e}")
+        self.es_index = es_index
 
     def _load_users_data(self) -> Dict[str, Any]:
         """Load and parse the input JSON file containing user data"""
@@ -206,6 +223,45 @@ class KubernetesAccessMonitor:
 
         return False
 
+    def _send_to_elasticsearch(self, log_entry: Dict[str, Any]):
+        """Send log entry to Elasticsearch"""
+        if not self.es_client:
+            return
+        
+        try:
+            # Transform for Elasticsearch
+            es_doc = {
+                'username': log_entry.get('username'),
+                'groups': log_entry.get('groups', []),
+                'timestamp': log_entry.get('timestamp'),
+                'access_count': len(log_entry.get('accesses', [])),
+                '@timestamp': datetime.fromisoformat(log_entry.get('timestamp').replace('Z', '+00:00'))
+            }
+            
+            # Flatten accesses
+            flattened = []
+            for access in log_entry.get('accesses', []):
+                namespace = access.get('namespace', '')
+                is_cluster = access.get('is_cluster', False)
+                resources = access.get('resources', {})
+                
+                for resource, verbs in resources.items():
+                    for verb in verbs:
+                        flattened.append({
+                            'namespace': namespace,
+                            'resource': resource,
+                            'verb': verb,
+                            'is_cluster': is_cluster
+                        })
+            
+            es_doc['flattened_accesses'] = flattened
+            
+            # Send to Elasticsearch
+            self.es_client.index(index=self.es_index, document=es_doc)
+            logger.debug(f"Sent log entry for {log_entry.get('username')} to Elasticsearch")
+        except Exception as e:
+            logger.error(f"Failed to send to Elasticsearch: {e}")
+
     def collect_and_log_accesses(self):
         """Main method to collect accesses and generate logs"""
         logger.info("Starting access collection...")
@@ -226,16 +282,24 @@ class KubernetesAccessMonitor:
             # Print to stdout
             print(json.dumps(log_entry, ensure_ascii=False))
 
-            # Save to file
-            with open(self.output_file, 'a', encoding='utf-8') as f:
-                f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
+            # Save to file - ensure directory exists
+            try:
+                os.makedirs(os.path.dirname(self.output_file) if os.path.dirname(self.output_file) else '.', exist_ok=True)
+                with open(self.output_file, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps(log_entry, ensure_ascii=False) + '\n')
+            except Exception as e:
+                logger.warning(f"Failed to write to file {self.output_file}: {e}")
+
+            # Send to Elasticsearch
+            self._send_to_elasticsearch(log_entry)
 
         logger.info(f"Access collection completed. Logs saved to {self.output_file}")
 
 def main():
     # Always use environment variables for configuration in containers
     input_file = os.getenv('INPUT_FILE', 'input.json')
-    output_file = os.getenv('OUTPUT_FILE', '/tmp/access_logs.jsonl')
+    # Default to /app/logs for shared volume, fallback to /tmp
+    output_file = os.getenv('OUTPUT_FILE', '/app/logs/access_logs.jsonl')
     monitor = KubernetesAccessMonitor(input_file=input_file, output_file=output_file)
     monitor.collect_and_log_accesses()
 
