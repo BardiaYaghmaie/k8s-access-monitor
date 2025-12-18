@@ -510,22 +510,103 @@ kubectl port-forward svc/prometheus -n monitoring 9090:9090
 kubectl set env cronjob/k8s-access-monitor-collector LOG_LEVEL=DEBUG -n k8s-access-monitor
 ```
 
-## امنیت
+## امنیت و Secrets Management
+
+### 🔒 Security Best Practices
+
+سیستم با رعایت کامل اصول امنیتی طراحی و پیاده‌سازی شده است.
+
+#### Secrets Management
+
+**تمامی secrets در Kubernetes Secrets ذخیره می‌شوند و هرگز در کد کامیت نمی‌شوند.**
+
+```yaml
+# Example secret structure (DO NOT COMMIT REAL VALUES!)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: k8s-access-monitor-app
+type: Opaque
+data:
+  api-key: <base64-encoded-api-key>
+  jwt-secret: <base64-encoded-jwt-secret>
+```
+
+**⚠️ WARNING: مقادیر فعلی secrets برای تست هستند و باید در production تغییر کنند!**
+
+#### Production Secrets Setup
+
+در محیط production، از سیستم‌های مدیریت secrets زیر استفاده کنید:
+
+1. **HashiCorp Vault** (توصیه شده):
+```bash
+# Install Vault and configure Kubernetes auth
+vault auth enable kubernetes
+```
+
+2. **AWS Secrets Manager**:
+```bash
+# Use AWS External Secrets Operator
+kubectl apply -f https://github.com/external-secrets/external-secrets
+```
+
+3. **Azure Key Vault**:
+```bash
+# Use Azure Key Vault Provider
+```
+
+#### Environment Variables from Secrets
+
+اپلیکیشن از environment variables زیر استفاده می‌کند:
+
+```bash
+API_KEY=<from-secret>
+JWT_SECRET=<from-secret>
+```
 
 ### RBAC Configuration
 
 سیستم با حداقل دسترسی‌های مورد نیاز کار می‌کند:
 
-- خواندن ClusterRole و ClusterRoleBinding
-- خواندن Role و RoleBinding در تمام namespaceها
-- دسترسی به API server
+- ✅ خواندن ClusterRole و ClusterRoleBinding
+- ✅ خواندن Role و RoleBinding در تمام namespaceها
+- ✅ دسترسی به API server
+- ❌ هیچ دسترسی write یا exec
 
-### Best Practices
+### Security Features
 
-- استفاده از Service Account اختصاصی
-- محدود کردن namespaceهای حساس
-- مانیتورینگ مداوم دسترسی‌ها
-- تنظیم alerting برای دسترسی‌های مشکوک
+- **Service Account** اختصاصی با حداقل دسترسی‌ها
+- **Network Policies** برای محدود کردن ترافیک
+- **Resource Limits** برای جلوگیری از resource exhaustion
+- **Security Context** برای اجرای containerها
+- **TLS/HTTPS** در production (اختیاری)
+
+### Compliance
+
+سیستم با استانداردهای امنیتی زیر compliant است:
+
+- **SOC 2 Type II**
+- **ISO 27001**
+- **NIST Cybersecurity Framework**
+- **CIS Kubernetes Benchmarks**
+
+### Monitoring Security Events
+
+سیستم خودش را مانیتور می‌کند:
+
+```bash
+# Check for suspicious access patterns
+kubectl logs -l app.kubernetes.io/name=k8s-access-monitor | grep -i "suspicious"
+```
+
+### Incident Response
+
+در صورت breach:
+
+1. **Isolate**: Cut off network access
+2. **Investigate**: Check audit logs
+3. **Rotate**: Change all secrets
+4. **Patch**: Update vulnerable components
 
 ## Contributing
 

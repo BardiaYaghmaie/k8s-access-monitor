@@ -16,6 +16,10 @@ import logging
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 
+# Security: Load secrets from environment variables (set by Kubernetes secrets)
+API_KEY = os.getenv('API_KEY', 'dummy-api-key')
+JWT_SECRET = os.getenv('JWT_SECRET', 'dummy-jwt-secret')
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)

@@ -1,4 +1,29 @@
 # Default values for k8s-access-monitor
+# SECURITY NOTE: All secrets in this file are DUMMY VALUES for testing only!
+# In production, use external secrets management (Vault, AWS Secrets Manager, etc.)
+
+# Global security configuration
+global:
+  security:
+    # Whether to create secrets automatically (set to false in production)
+    # When false, secrets must be created manually or via external secrets manager
+    createSecrets: true
+
+    # Security hardening options
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      runAsGroup: 1000
+      fsGroup: 1000
+      readOnlyRootFilesystem: false  # Allow log writes
+
+    # Network policies (enable in production)
+    networkPolicy:
+      enabled: false  # Set to true in production
+
+    # TLS configuration
+    tls:
+      enabled: false  # Set to true for HTTPS in production
 
 # Main application configuration
 mainApp:
@@ -8,6 +33,14 @@ mainApp:
     tag: "latest"
     pullPolicy: IfNotPresent
   schedule: "*/5 * * * *"  # Run every 5 minutes
+
+  # Application secrets configuration
+  secrets:
+    # API key for external integrations
+    apiKey: "dummy-api-key"  # CHANGE IN PRODUCTION!
+    # JWT secret for token signing
+    jwtSecret: "dummy-jwt-secret"  # CHANGE IN PRODUCTION!
+
   inputConfig: |
     {
       "metadata": {

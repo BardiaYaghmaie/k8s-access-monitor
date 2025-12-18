@@ -14,7 +14,7 @@ spec:
       labels:
         {{- include "k8s-access-monitor.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.securityContext }}
+      {{- with .Values.global.security.securityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -51,6 +51,11 @@ spec:
             - name: input-config
               mountPath: /app/input.json
               subPath: input.json
+            {{- if .Values.global.security.createSecrets }}
+            - name: app-secrets
+              mountPath: /app/secrets
+              readOnly: true
+            {{- end }}
           env:
             - name: PYTHONPATH
               value: "/app"
@@ -58,6 +63,19 @@ spec:
               value: "{{ .Values.metricsExporter.port }}"
             - name: INPUT_FILE
               value: "/app/input.json"
+            {{- if .Values.global.security.createSecrets }}
+            # Application secrets from Kubernetes secrets
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "k8s-access-monitor.fullname" . }}-app
+                  key: api-key
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "k8s-access-monitor.fullname" . }}-app
+                  key: jwt-secret
+            {{- end }}
           resources:
             {{- toYaml .Values.metricsExporter.resources | nindent 12 }}
         {{- end }}
@@ -68,6 +86,16 @@ spec:
             name: {{ include "k8s-access-monitor.fullname" . }}-config
         - name: logs
           emptyDir: {}
+        {{- if .Values.global.security.createSecrets }}
+        - name: app-secrets
+          secret:
+            secretName: {{ include "k8s-access-monitor.fullname" . }}-app
+            items:
+            - key: api-key
+              path: api-key
+            - key: jwt-secret
+              path: jwt-secret
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
