@@ -21,6 +21,11 @@ try:
 except ImportError:
     Elasticsearch = None
 
+try:
+    import requests
+except ImportError:
+    requests = None
+
 # Security: Load secrets from environment variables (set by Kubernetes secrets)
 API_KEY = os.getenv('API_KEY', 'dummy-api-key')
 JWT_SECRET = os.getenv('JWT_SECRET', 'dummy-jwt-secret')
@@ -39,17 +44,8 @@ class KubernetesAccessMonitor:
         self.users_data = self._load_users_data()
         self.k8s_client = self._init_kubernetes_client()
         
-        # Initialize Elasticsearch if available
-        self.es_client = None
-        es_url = os.getenv('ELASTICSEARCH_URL', 'http://elasticsearch:9200')
-        es_index = os.getenv('ELASTICSEARCH_INDEX', 'k8s-access-logs')
-        if Elasticsearch:
-            try:
-                self.es_client = Elasticsearch([es_url])
-                logger.info(f"Connected to Elasticsearch at {es_url}")
-            except Exception as e:
-                logger.warning(f"Failed to connect to Elasticsearch: {e}")
-        self.es_index = es_index
+        # Elasticsearch configuration (using direct HTTP for ES 7.x compatibility)
+        self.es_index = os.getenv('ELASTICSEARCH_INDEX', 'k8s-access-logs')
 
     def _load_users_data(self) -> Dict[str, Any]:
         """Load and parse the input JSON file containing user data"""
@@ -224,8 +220,11 @@ class KubernetesAccessMonitor:
         return False
 
     def _send_to_elasticsearch(self, log_entry: Dict[str, Any]):
-        """Send log entry to Elasticsearch"""
-        if not self.es_client:
+        """Send log entry to Elasticsearch using direct HTTP for ES 7.x compatibility"""
+        es_url = os.getenv('ELASTICSEARCH_URL', 'http://elasticsearch:9200')
+        
+        if not requests:
+            logger.warning("requests library not available, skipping Elasticsearch")
             return
         
         try:
@@ -235,7 +234,7 @@ class KubernetesAccessMonitor:
                 'groups': log_entry.get('groups', []),
                 'timestamp': log_entry.get('timestamp'),
                 'access_count': len(log_entry.get('accesses', [])),
-                '@timestamp': datetime.fromisoformat(log_entry.get('timestamp').replace('Z', '+00:00'))
+                '@timestamp': log_entry.get('timestamp')  # Use string timestamp for JSON serialization
             }
             
             # Flatten accesses
@@ -256,11 +255,18 @@ class KubernetesAccessMonitor:
             
             es_doc['flattened_accesses'] = flattened
             
-            # Send to Elasticsearch
-            self.es_client.index(index=self.es_index, document=es_doc)
+            # Use direct HTTP request for ES 7.x compatibility
+            response = requests.post(
+                f"{es_url}/{self.es_index}/_doc",
+                json=es_doc,
+                headers={'Content-Type': 'application/json'},
+                timeout=5
+            )
+            response.raise_for_status()
             logger.debug(f"Sent log entry for {log_entry.get('username')} to Elasticsearch")
         except Exception as e:
-            logger.error(f"Failed to send to Elasticsearch: {e}")
+            logger.warning(f"Failed to send to Elasticsearch (non-critical): {e}")
+            # Don't fail the whole process if ES is unavailable
 
     def collect_and_log_accesses(self):
         """Main method to collect accesses and generate logs"""
