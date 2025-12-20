@@ -2,29 +2,51 @@
 
 Complete RBAC monitoring and analysis system for Kubernetes with Elasticsearch, Prometheus, and Grafana integration.
 
+## Overview
+
+This system monitors Kubernetes RBAC permissions for specified users, collects access data every 5 minutes, stores it in Elasticsearch, and provides visualization through Grafana dashboards. It also exposes Prometheus metrics for sensitive access monitoring.
+
+### Components
+
+- **Main Application**: Collects RBAC data from Kubernetes API every 5 minutes
+- **Sidecar Container**: Processes logs and sends to Elasticsearch
+- **Metrics Exporter**: Exposes Prometheus metrics for security monitoring
+- **Grafana Dashboards**: Auto-provisioned dashboards for visualization
+
+## Prerequisites
+
+- Docker (for building images)
+- kubectl (configured to access your cluster)
+- Helm 3.0+
+- Kind (optional, for local testing)
+
 ## Quick Start
 
-### Prerequisites
-- Kubernetes cluster (or Kind for local testing)
-- kubectl configured
-- Docker
-- Helm 3.0+
-
-### 1. Build Docker Images
+### Step 1: Create Kind Cluster (for local testing)
 
 ```bash
-# Build all images
+# Create a new Kind cluster
+kind create cluster --name k8s-access-monitor
+
+# Or use existing cluster
+kubectl config use-context kind-k8s-access-monitor
+```
+
+### Step 2: Build Docker Images
+
+```bash
+# Build all three images
 docker build -f Dockerfile -t k8s-access-monitor:latest .
 docker build -f Dockerfile.sidecar -t k8s-access-monitor-sidecar:latest .
 docker build -f Dockerfile.metrics -t k8s-access-monitor-metrics:latest .
 
-# If using Kind, load images
-kind load docker-image k8s-access-monitor:latest --name <cluster-name>
-kind load docker-image k8s-access-monitor-sidecar:latest --name <cluster-name>
-kind load docker-image k8s-access-monitor-metrics:latest --name <cluster-name>
+# Load images into Kind cluster
+kind load docker-image k8s-access-monitor:latest --name k8s-access-monitor
+kind load docker-image k8s-access-monitor-sidecar:latest --name k8s-access-monitor
+kind load docker-image k8s-access-monitor-metrics:latest --name k8s-access-monitor
 ```
 
-### 2. Deploy Infrastructure
+### Step 3: Deploy Infrastructure
 
 ```bash
 # Create namespaces
@@ -76,7 +98,13 @@ spec:
     app: elasticsearch
 EOF
 
-# Deploy Prometheus
+# Wait for Elasticsearch to be ready
+kubectl wait --for=condition=ready pod -l app=elasticsearch -n monitoring --timeout=120s
+```
+
+### Step 4: Deploy Prometheus
+
+```bash
 kubectl apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
@@ -149,20 +177,47 @@ data:
       scrape_interval: 15s
 EOF
 
-# Create Grafana secret first
+# Wait for Prometheus
+kubectl wait --for=condition=ready pod -l app=prometheus -n monitoring --timeout=120s
+```
+
+### Step 5: Deploy Grafana with Auto-Provisioning
+
+```bash
+# Create Grafana admin secret
 kubectl create secret generic grafana-admin \
   --from-literal=password=admin \
   -n monitoring
 
-# Create Grafana dashboard provisioning
-kubectl apply -f grafana-dashboard-provisioning.yaml
+# Create dashboard provisioning config
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-provisioning
+  namespace: monitoring
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+    - name: 'default'
+      orgId: 1
+      folder: ''
+      type: file
+      disableDeletion: false
+      updateIntervalSeconds: 10
+      allowUiUpdates: true
+      options:
+        path: /etc/grafana/provisioning/dashboards
+        foldersFromFilesStructure: true
+EOF
 
 # Create dashboard ConfigMap
 kubectl create configmap grafana-dashboards \
   --from-file=dashboards/ \
   -n monitoring
 
-# Deploy Grafana with auto-provisioning
+# Deploy Grafana
 kubectl apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
@@ -252,9 +307,12 @@ data:
       jsonData:
         timeInterval: "15s"
 EOF
+
+# Wait for Grafana
+kubectl wait --for=condition=ready pod -l app=grafana -n monitoring --timeout=120s
 ```
 
-### 3. Deploy Application
+### Step 6: Deploy Application
 
 ```bash
 # Install via Helm
@@ -263,80 +321,124 @@ helm install k8s-access-monitor . \
   --namespace k8s-access-monitor \
   --create-namespace
 
-# Update ConfigMap with full user list
+# Update ConfigMap with full user list (all 8 users from input.json)
+cd ../..
 kubectl create configmap k8s-access-monitor-config \
-  --from-file=input.json=../../input.json \
+  --from-file=input.json=input.json \
   -n k8s-access-monitor \
   --dry-run=client -o yaml | kubectl apply -f -
+
+# Restart deployment to pick up new ConfigMap
+kubectl rollout restart deployment/k8s-access-monitor -n k8s-access-monitor
+
+# Wait for deployment to be ready
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=k8s-access-monitor -n k8s-access-monitor --timeout=120s
 ```
 
-### 4. Verify Deployment
+## Testing
+
+### Test 1: Verify Pods are Running
 
 ```bash
-# Check pods
+# Check all pods
 kubectl get pods -n k8s-access-monitor
 kubectl get pods -n monitoring
 
-# Check CronJob
-kubectl get cronjob -n k8s-access-monitor
-
-# Manually trigger collection
-kubectl create job test-run --from=cronjob/k8s-access-monitor-collector -n k8s-access-monitor
-kubectl logs job/test-run -n k8s-access-monitor
-
-# Check metrics
-kubectl port-forward svc/k8s-access-monitor-metrics -n k8s-access-monitor 8000:8000
-curl http://localhost:8000/metrics
-
-# Run comprehensive test
-chmod +x test-system.sh
-./test-system.sh
+# All should show STATUS: Running and READY: 1/1 or 2/2
 ```
 
-### 5. Access Dashboards
-
-**Dashboards are auto-imported!** Just access Grafana and they'll be available.
+### Test 2: Test Data Collection
 
 ```bash
-# Grafana
-kubectl port-forward svc/grafana -n monitoring 3000:3000
-# Open http://localhost:3000
-# Username: admin, Password: admin
+# Manually trigger a collection job
+kubectl create job test-collection --from=cronjob/k8s-access-monitor-collector -n k8s-access-monitor
 
-# Prometheus
+# Wait a few seconds, then check logs
+sleep 10
+kubectl logs job/test-collection -n k8s-access-monitor
+
+# Expected output:
+# - "Loaded 8 users from input file"
+# - "Starting access collection..."
+# - JSON output for each user
+# - "Access collection completed"
+```
+
+### Test 3: Test Metrics Endpoint
+
+```bash
+# Port forward to metrics service
+kubectl port-forward svc/k8s-access-monitor-metrics -n k8s-access-monitor 8000:8000
+
+# In another terminal, test metrics
+curl http://localhost:8000/metrics
+
+# Should see Prometheus metrics like:
+# k8s_namespace_sensitive_access_users_count{...}
+# k8s_cluster_wide_sensitive_access_users_count{...}
+```
+
+### Test 4: Verify Prometheus is Scraping
+
+```bash
+# Port forward to Prometheus
 kubectl port-forward svc/prometheus -n monitoring 9090:9090
-# Open http://localhost:9090
 
-# Elasticsearch
+# Open http://localhost:9090/targets in browser
+# Should see: k8s-access-monitor job with status "UP"
+```
+
+### Test 5: Verify Elasticsearch
+
+```bash
+# Port forward to Elasticsearch
 kubectl port-forward svc/elasticsearch -n monitoring 9200:9200
-curl http://localhost:9200/_cluster/health
+
+# Check cluster health
+curl http://localhost:9200/_cluster/health?pretty
+
+# Should show: "status" : "green" or "yellow"
+
+# Check if data exists (after collection runs)
+curl "http://localhost:9200/k8s-access-logs/_search?pretty&size=5"
+```
+
+### Test 6: Access Grafana Dashboards
+
+```bash
+# Port forward to Grafana
+kubectl port-forward svc/grafana -n monitoring 3000:3000
+
+# Open http://localhost:3000 in browser
+# Login: admin / admin
+# Dashboards should be auto-imported and visible:
+#   - Kubernetes Access Monitoring - Elasticsearch
+#   - Kubernetes Security Monitoring - Prometheus
 ```
 
 ## Configuration
 
 ### Update User List
 
-Edit `input.json` and update the ConfigMap:
+Edit `input.json` to add/remove users, then update the ConfigMap:
 
 ```bash
 kubectl create configmap k8s-access-monitor-config \
   --from-file=input.json=input.json \
   -n k8s-access-monitor \
   --dry-run=client -o yaml | kubectl apply -f -
+
+# Restart deployment
+kubectl rollout restart deployment/k8s-access-monitor -n k8s-access-monitor
 ```
 
-### Customize Helm Values
+### Customize Collection Schedule
 
 Edit `helm/k8s-access-monitor/values.yaml`:
 
 ```yaml
 mainApp:
-  schedule: "*/5 * * * *"  # Collection frequency
-
-sidecar:
-  elasticsearch:
-    url: "http://elasticsearch.monitoring.svc.cluster.local:9200"
-    index: "k8s-access-logs"
+  schedule: "*/5 * * * *"  # Change to desired schedule
 ```
 
 Then upgrade:
@@ -347,18 +449,37 @@ helm upgrade k8s-access-monitor ./helm/k8s-access-monitor -n k8s-access-monitor
 
 ## Architecture
 
-- **CronJob**: Runs every 5 minutes, collects RBAC data, writes to file and stdout, sends to Elasticsearch
-- **Deployment**: 
-  - **Sidecar**: Processes logs and sends to Elasticsearch
-  - **Metrics Exporter**: Exposes Prometheus metrics on port 8000
-- **Monitoring Stack**: Elasticsearch, Prometheus, Grafana
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   CronJob       │    │   Deployment    │    │   Prometheus    │
+│                 │    │                 │    │                 │
+│ • Main App      │    │ • Sidecar       │    │ • Metrics       │
+│ • Collects RBAC │    │ • Log Processor │    │ • Security      │
+│ • Runs every 5m │    │ • Elasticsearch │    │ • Alerts        │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │   Grafana       │
+                    │                 │
+                    │ • Access Dash   │
+                    │ • Security Dash │
+                    │ • Auto-imported │
+                    └─────────────────┘
+```
 
 ## Metrics
 
 Two Prometheus metrics are exposed:
 
-1. `k8s_namespace_sensitive_access_users_count{namespace, verb, resource}` - Users with sensitive namespace access
-2. `k8s_cluster_wide_sensitive_access_users_count{resource, verb}` - Users with cluster-wide sensitive access
+1. **k8s_namespace_sensitive_access_users_count**
+   - Labels: `namespace`, `verb`, `resource`
+   - Example: `k8s_namespace_sensitive_access_users_count{namespace="kube-system", verb="create", resource="pods"} 4`
+
+2. **k8s_cluster_wide_sensitive_access_users_count**
+   - Labels: `resource`, `verb`
+   - Example: `k8s_cluster_wide_sensitive_access_users_count{resource="secrets", verb="delete"} 2`
 
 ## Security
 
@@ -367,37 +488,111 @@ All secrets are managed via Kubernetes Secrets:
 - Grafana admin: `grafana-admin`
 - Elasticsearch credentials: `elasticsearch-creds`
 
-**⚠️ Production**: Replace dummy secrets with real values from Vault/AWS Secrets Manager.
+**⚠️ Production Note**: Replace dummy secrets with real values from Vault/AWS Secrets Manager. See `helm/k8s-access-monitor/templates/secrets.yaml` for details.
 
 ## Troubleshooting
 
+### Pods not starting
+
 ```bash
+# Check pod status
+kubectl describe pod <pod-name> -n k8s-access-monitor
+
 # Check logs
-kubectl logs -n k8s-access-monitor deployment/k8s-access-monitor -c sidecar
+kubectl logs <pod-name> -n k8s-access-monitor
+```
+
+### Metrics not accessible
+
+```bash
+# Check service
+kubectl get svc -n k8s-access-monitor
+
+# Test from within cluster
+kubectl run test --image=curlimages/curl --rm -i --restart=Never -- \
+  curl http://k8s-access-monitor-metrics.k8s-access-monitor.svc.cluster.local:8000/metrics
+```
+
+### Prometheus target down
+
+```bash
+# Check Prometheus config
+kubectl get configmap prometheus-config -n monitoring -o yaml
+
+# Verify service exists
+kubectl get svc k8s-access-monitor-metrics -n k8s-access-monitor
+
+# Check metrics exporter logs
 kubectl logs -n k8s-access-monitor deployment/k8s-access-monitor -c metrics-exporter
+```
 
-# Check RBAC
-kubectl auth can-i list clusterroles \
-  --as=system:serviceaccount:k8s-access-monitor:k8s-access-monitor-sa
+### Elasticsearch connection issues
 
-# Test Elasticsearch connection
-kubectl run test-es --image=curlimages/curl --rm -it --restart=Never \
-  -- curl elasticsearch.monitoring.svc.cluster.local:9200
+```bash
+# Check Elasticsearch is running
+kubectl get pods -n monitoring | grep elasticsearch
+
+# Test connectivity
+kubectl run test-es --image=curlimages/curl --rm -i --restart=Never -- \
+  curl http://elasticsearch.monitoring.svc.cluster.local:9200/_cluster/health
+```
+
+### Only 2 users loaded instead of 8
+
+```bash
+# Update ConfigMap with full input.json
+kubectl create configmap k8s-access-monitor-config \
+  --from-file=input.json=input.json \
+  -n k8s-access-monitor \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+# Restart deployment
+kubectl rollout restart deployment/k8s-access-monitor -n k8s-access-monitor
 ```
 
 ## Project Structure
 
 ```
+k8s-access-monitor/
 ├── src/
-│   ├── main.py              # RBAC collection app
-│   ├── sidecar.py          # Log processor
-│   └── metrics_exporter.py # Prometheus metrics
-├── helm/k8s-access-monitor/ # Helm chart
-├── dashboards/             # Grafana dashboards
-├── input.json              # User configuration
-└── README.md
+│   ├── main.py              # RBAC collection application
+│   ├── sidecar.py          # Log processor for Elasticsearch
+│   └── metrics_exporter.py  # Prometheus metrics exporter
+├── helm/k8s-access-monitor/
+│   ├── Chart.yaml
+│   ├── values.yaml
+│   └── templates/          # Kubernetes manifests
+├── dashboards/
+│   ├── elasticsearch-access-dashboard.json
+│   └── prometheus-security-dashboard.json
+├── Dockerfile              # Main app image
+├── Dockerfile.sidecar     # Sidecar image
+├── Dockerfile.metrics     # Metrics exporter image
+├── requirements.txt        # Python dependencies
+├── input.json             # User configuration
+└── README.md              # This file
+```
+
+## Cleanup
+
+To remove everything:
+
+```bash
+# Uninstall Helm release
+helm uninstall k8s-access-monitor -n k8s-access-monitor
+
+# Delete namespaces
+kubectl delete namespace k8s-access-monitor
+kubectl delete namespace monitoring
+
+# If using Kind, delete cluster
+kind delete cluster --name k8s-access-monitor
 ```
 
 ## License
 
 MIT
+
+## Support
+
+For issues or questions, please open an issue in the repository.
