@@ -203,17 +203,8 @@
           "uid": "P31C819B24CF3C3C7"
         },
         "query": {
-          "query": {
-            "bool": {
-              "must": [
-                {
-                  "exists": {
-                    "field": "username"
-                  }
-                }
-              ]
-            }
-          },
+          "find": "fields",
+          "type": "keyword",
           "field": "username"
         },
         "current": {
@@ -224,7 +215,11 @@
         "options": [],
         "refresh": 1,
         "regex": "",
-        "skipUrlSync": false
+        "skipUrlSync": false,
+        "includeAll": true,
+        "allValue": null,
+        "multi": false,
+        "sort": 0
       },
       {
         "name": "resource",
