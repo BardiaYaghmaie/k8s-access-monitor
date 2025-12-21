@@ -1,6 +1,7 @@
 {
   "dashboard": {
     "id": null,
+    "uid": "k8s-security-prometheus",
     "title": "Kubernetes Security Monitoring - Prometheus",
     "tags": ["kubernetes", "security", "prometheus"],
     "timezone": "browser",

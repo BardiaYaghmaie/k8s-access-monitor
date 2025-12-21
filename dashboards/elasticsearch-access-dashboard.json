@@ -1,6 +1,7 @@
 {
   "dashboard": {
     "id": null,
+    "uid": "k8s-access-elasticsearch",
     "title": "Kubernetes Access Monitoring - Elasticsearch",
     "tags": ["kubernetes", "security", "access-control"],
     "timezone": "browser",
