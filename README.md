@@ -412,18 +412,13 @@ kubectl port-forward svc/grafana -n monitoring 3000:3000
 
 # Open http://localhost:3000 in browser
 # Login: admin / admin
-# Dashboards should be auto-imported and visible:
+# Dashboards are auto-imported and visible:
 #   - Kubernetes Access Monitoring - Elasticsearch
 #   - Kubernetes Security Monitoring - Prometheus
 #
-# If dashboards are not auto-imported, manually import them:
-# 1. Go to Dashboards → Import
-# 2. Upload files from dashboards/ directory:
-#    - elasticsearch-access-dashboard-unwrapped.json (use this one)
-#    - prometheus-security-dashboard-unwrapped.json (use this one)
-#
-# Note: Use the *-unwrapped.json files for manual import.
-#       The wrapped versions are for reference only.
+# If dashboards are not visible, manually import from dashboards/:
+#   - elasticsearch-access-dashboard-unwrapped.json
+#   - prometheus-security-dashboard-unwrapped.json
 ```
 
 ## Configuration

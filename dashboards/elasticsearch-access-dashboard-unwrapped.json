@@ -215,63 +215,95 @@
             }
           },
           "field": "username"
-        }
+        },
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": [],
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false
       },
       {
         "name": "resource",
         "type": "custom",
+        "current": {
+          "selected": true,
+          "text": "pods",
+          "value": "pods"
+        },
         "options": [
           {
+            "selected": true,
             "text": "pods",
             "value": "pods"
           },
           {
+            "selected": false,
             "text": "secrets",
             "value": "secrets"
           },
           {
+            "selected": false,
             "text": "configmaps",
             "value": "configmaps"
           },
           {
+            "selected": false,
             "text": "services",
             "value": "services"
           },
           {
+            "selected": false,
             "text": "deployments",
             "value": "deployments"
           }
-        ]
+        ],
+        "query": "pods : secrets : configmaps : services : deployments"
       },
       {
         "name": "verb",
         "type": "custom",
+        "current": {
+          "selected": true,
+          "text": "get",
+          "value": "get"
+        },
         "options": [
           {
+            "selected": true,
             "text": "get",
             "value": "get"
           },
           {
+            "selected": false,
             "text": "list",
             "value": "list"
           },
           {
+            "selected": false,
             "text": "create",
             "value": "create"
           },
           {
+            "selected": false,
             "text": "update",
             "value": "update"
           },
           {
+            "selected": false,
             "text": "delete",
             "value": "delete"
           },
           {
+            "selected": false,
             "text": "exec",
             "value": "exec"
           }
-        ]
+        ],
+        "query": "get : list : create : update : delete : exec"
       }
     ]
   },
