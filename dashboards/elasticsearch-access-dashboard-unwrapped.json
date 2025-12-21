@@ -202,7 +202,7 @@
           "type": "elasticsearch",
           "uid": "P31C819B24CF3C3C7"
         },
-        "query": "username",
+        "query": "{\"find\":\"fields\",\"type\":\"keyword\",\"field\":\"username\"}",
         "current": {
           "selected": false,
           "text": "All",
