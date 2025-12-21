@@ -43,6 +43,10 @@
         "w": 12,
         "x": 0,
         "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
       }
     },
     {
@@ -83,6 +87,10 @@
         "w": 12,
         "x": 12,
         "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
       }
     },
     {
@@ -101,6 +109,10 @@
         "w": 12,
         "x": 0,
         "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
       }
     },
     {
@@ -141,6 +153,10 @@
         "w": 12,
         "x": 12,
         "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
       }
     },
     {
@@ -180,6 +196,10 @@
         "w": 8,
         "x": 0,
         "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
       }
     },
     {
@@ -219,6 +239,10 @@
         "w": 8,
         "x": 8,
         "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
       }
     },
     {
@@ -254,6 +278,10 @@
         "w": 8,
         "x": 16,
         "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "PBFA97CFB590B2093"
       }
     }
   ],
