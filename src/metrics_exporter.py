@@ -254,20 +254,42 @@ class MetricsExporter:
     def generate_prometheus_metrics(self) -> str:
         """Generate Prometheus metrics output"""
         lines = []
+        
+        # Add help text and type information
+        lines.append('# HELP k8s_namespace_sensitive_access_users_count Number of users with sensitive access to a namespace')
+        lines.append('# TYPE k8s_namespace_sensitive_access_users_count gauge')
+        lines.append('')
+        
+        lines.append('# HELP k8s_cluster_wide_sensitive_access_users_count Number of users with cluster-wide sensitive access')
+        lines.append('# TYPE k8s_cluster_wide_sensitive_access_users_count gauge')
+        lines.append('')
 
         # Namespace sensitive access metrics
         namespace_metrics = self.calculate_namespace_sensitive_metrics()
+        logger.info(f"Namespace metrics calculated: {len(namespace_metrics)} entries")
         for key, users in namespace_metrics.items():
-            namespace, verb, resource = key.split('_', 2)
-            user_count = len(users)
-            lines.append(f'k8s_namespace_sensitive_access_users_count{{namespace="{namespace}",verb="{verb}",resource="{resource}"}} {user_count}')
+            try:
+                namespace, verb, resource = key.split('_', 2)
+                user_count = len(users)
+                lines.append(f'k8s_namespace_sensitive_access_users_count{{namespace="{namespace}",verb="{verb}",resource="{resource}"}} {user_count}')
+            except ValueError:
+                logger.warning(f"Invalid metric key format: {key}")
 
         # Cluster-wide sensitive access metrics
         cluster_metrics = self.calculate_cluster_wide_sensitive_metrics()
+        logger.info(f"Cluster metrics calculated: {len(cluster_metrics)} entries")
         for key, users in cluster_metrics.items():
-            verb, resource = key.split('_', 1)
-            user_count = len(users)
-            lines.append(f'k8s_cluster_wide_sensitive_access_users_count{{resource="{resource}",verb="{verb}"}} {user_count}')
+            try:
+                verb, resource = key.split('_', 1)
+                user_count = len(users)
+                lines.append(f'k8s_cluster_wide_sensitive_access_users_count{{resource="{resource}",verb="{verb}"}} {user_count}')
+            except ValueError:
+                logger.warning(f"Invalid metric key format: {key}")
+        
+        # If no metrics found, add a comment
+        if not namespace_metrics and not cluster_metrics:
+            lines.append('# No sensitive access found for monitored users')
+            logger.info("No sensitive access metrics found - users may not have RBAC bindings in cluster")
 
         return '\n'.join(lines)
 
@@ -284,10 +306,21 @@ class MetricsHandler(BaseHTTPRequestHandler):
 
             try:
                 metrics = self.exporter.generate_prometheus_metrics()
-                self.wfile.write(metrics.encode('utf-8'))
+                if metrics:
+                    self.wfile.write(metrics.encode('utf-8'))
+                    logger.debug(f"Metrics generated successfully, length: {len(metrics)}")
+                else:
+                    logger.warning("Metrics generation returned empty string")
+                    self.wfile.write(b'# No metrics available\n')
             except Exception as e:
-                logger.error(f"Failed to generate metrics: {e}")
-                self.wfile.write(b'# Error generating metrics\n')
+                logger.error(f"Failed to generate metrics: {e}", exc_info=True)
+                error_msg = f'# Error generating metrics: {str(e)}\n'
+                self.wfile.write(error_msg.encode('utf-8'))
+        elif self.path == '/health':
+            self.send_response(200)
+            self.send_header('Content-type', 'text/plain')
+            self.end_headers()
+            self.wfile.write(b'OK\n')
         else:
             self.send_response(404)
             self.end_headers()
