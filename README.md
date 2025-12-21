@@ -212,9 +212,10 @@ data:
         foldersFromFilesStructure: true
 EOF
 
-# Create dashboard ConfigMap
+# Create dashboard ConfigMap (using unwrapped versions for file-based provisioning)
 kubectl create configmap grafana-dashboards \
-  --from-file=dashboards/ \
+  --from-file=elasticsearch-access-dashboard.json=dashboards/elasticsearch-access-dashboard-unwrapped.json \
+  --from-file=prometheus-security-dashboard.json=dashboards/prometheus-security-dashboard-unwrapped.json \
   -n monitoring
 
 # Deploy Grafana
@@ -414,6 +415,15 @@ kubectl port-forward svc/grafana -n monitoring 3000:3000
 # Dashboards should be auto-imported and visible:
 #   - Kubernetes Access Monitoring - Elasticsearch
 #   - Kubernetes Security Monitoring - Prometheus
+#
+# If dashboards are not auto-imported, manually import them:
+# 1. Go to Dashboards → Import
+# 2. Upload files from dashboards/ directory:
+#    - elasticsearch-access-dashboard-unwrapped.json (use this one)
+#    - prometheus-security-dashboard-unwrapped.json (use this one)
+#
+# Note: Use the *-unwrapped.json files for manual import.
+#       The wrapped versions are for reference only.
 ```
 
 ## Configuration
@@ -563,8 +573,10 @@ k8s-access-monitor/
 │   ├── values.yaml
 │   └── templates/          # Kubernetes manifests
 ├── dashboards/
-│   ├── elasticsearch-access-dashboard.json
-│   └── prometheus-security-dashboard.json
+│   ├── elasticsearch-access-dashboard-unwrapped.json  # For Grafana import
+│   ├── prometheus-security-dashboard-unwrapped.json   # For Grafana import
+│   ├── elasticsearch-access-dashboard.json            # Wrapped version (backup)
+│   └── prometheus-security-dashboard.json             # Wrapped version (backup)
 ├── Dockerfile              # Main app image
 ├── Dockerfile.sidecar     # Sidecar image
 ├── Dockerfile.metrics     # Metrics exporter image
