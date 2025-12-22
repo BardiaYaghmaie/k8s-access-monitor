@@ -1,273 +1,543 @@
 {
-  "dashboard": {
-    "id": null,
-    "uid": "k8s-security-prometheus",
-    "title": "Kubernetes Security Monitoring - Prometheus",
-    "tags": ["kubernetes", "security", "prometheus"],
-    "timezone": "browser",
-    "panels": [
+  "annotations": {
+    "list": [
       {
-        "id": 1,
-        "title": "Users with Sensitive Namespace Access",
-        "type": "table",
-        "targets": [
-          {
-            "expr": "k8s_namespace_sensitive_access_users_count",
-            "legendFormat": "{{namespace}} - {{resource}} - {{verb}}",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "value": 5
-                }
-              ]
-            }
-          }
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
         },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 0
-        }
-      },
-      {
-        "id": 2,
-        "title": "Cluster-wide Sensitive Access",
-        "type": "table",
-        "targets": [
-          {
-            "expr": "k8s_cluster_wide_sensitive_access_users_count",
-            "legendFormat": "{{resource}} - {{verb}}",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "orange",
-                  "value": 3
-                },
-                {
-                  "color": "red",
-                  "value": 5
-                }
-              ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 0
-        }
-      },
-      {
-        "id": 3,
-        "title": "Sensitive Namespace Access Trend",
-        "type": "graph",
-        "targets": [
-          {
-            "expr": "sum(k8s_namespace_sensitive_access_users_count) by (namespace)",
-            "legendFormat": "{{namespace}}",
-            "refId": "A"
-          }
-        ],
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 0,
-          "y": 8
-        }
-      },
-      {
-        "id": 4,
-        "title": "Cluster-wide Sensitive Access by Resource",
-        "type": "bargauge",
-        "targets": [
-          {
-            "expr": "k8s_cluster_wide_sensitive_access_users_count",
-            "legendFormat": "{{resource}} - {{verb}}",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "orange",
-                  "value": 3
-                },
-                {
-                  "color": "red",
-                  "value": 5
-                }
-              ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 8,
-          "w": 12,
-          "x": 12,
-          "y": 8
-        }
-      },
-      {
-        "id": 5,
-        "title": "High-Risk Access Alert",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "k8s_namespace_sensitive_access_users_count{resource=\"secrets\", verb=\"delete\"}",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "orange",
-                  "value": 1
-                },
-                {
-                  "color": "red",
-                  "value": 3
-                }
-              ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 4,
-          "w": 8,
-          "x": 0,
-          "y": 16
-        }
-      },
-      {
-        "id": 6,
-        "title": "Pod Execution Access Alert",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "k8s_cluster_wide_sensitive_access_users_count{resource=\"pods\", verb=\"exec\"}",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "orange",
-                  "value": 1
-                },
-                {
-                  "color": "red",
-                  "value": 3
-                }
-              ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 4,
-          "w": 8,
-          "x": 8,
-          "y": 16
-        }
-      },
-      {
-        "id": 7,
-        "title": "Node Access Alert",
-        "type": "stat",
-        "targets": [
-          {
-            "expr": "k8s_cluster_wide_sensitive_access_users_count{resource=\"nodes\", verb=\"delete\"}",
-            "refId": "A"
-          }
-        ],
-        "fieldConfig": {
-          "defaults": {
-            "mappings": [],
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {
-                  "color": "green",
-                  "value": null
-                },
-                {
-                  "color": "red",
-                  "value": 1
-                }
-              ]
-            }
-          }
-        },
-        "gridPos": {
-          "h": 4,
-          "w": 8,
-          "x": 16,
-          "y": 16
-        }
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
       }
-    ],
-    "time": {
-      "from": "now-1h",
-      "to": "now"
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 3},
+              {"color": "orange", "value": 5},
+              {"color": "red", "value": 8}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "sum(k8s_cluster_wide_sensitive_access_users_count{resource=\"secrets\",verb=~\"create|delete|patch\"})",
+          "legendFormat": "Users",
+          "refId": "A"
+        }
+      ],
+      "title": "🔐 Users with Secret Write Access (Cluster)",
+      "type": "stat"
     },
-    "timepicker": {},
-    "templating": {
-      "list": []
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "orange", "value": 1},
+              {"color": "red", "value": 3}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "sum(k8s_cluster_wide_sensitive_access_users_count{resource=\"nodes\",verb=~\"patch|delete\"})",
+          "legendFormat": "Users",
+          "refId": "A"
+        }
+      ],
+      "title": "⚠️ Users with Node Modify Access",
+      "type": "stat"
     },
-    "annotations": {
-      "list": []
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 3},
+              {"color": "red", "value": 5}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "sum(k8s_namespace_sensitive_access_users_count{namespace=\"kube-system\",resource=\"secrets\",verb=~\"create|delete|patch\"})",
+          "legendFormat": "Users",
+          "refId": "A"
+        }
+      ],
+      "title": "🛡️ Users with kube-system Secret Access",
+      "type": "stat"
     },
-    "refresh": "30s",
-    "schemaVersion": 27,
-    "version": 0,
-    "links": []
-  }
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 5},
+              {"color": "red", "value": 10}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "expr": "sum(k8s_cluster_wide_sensitive_access_users_count{resource=\"pods\",verb=\"delete\"})",
+          "legendFormat": "Users",
+          "refId": "A"
+        }
+      ],
+      "title": "🗑️ Users with Pod Delete Access (Cluster)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 3},
+              {"color": "red", "value": 5}
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Value"},
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {"mode": "gradient", "type": "color-background"}
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "id": 5,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [{"desc": true, "displayName": "Value"}]
+      },
+      "targets": [
+        {
+          "expr": "k8s_namespace_sensitive_access_users_count{namespace=~\"$namespace\"}",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Sensitive Namespace Access by Resource/Verb",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {"Time": true, "__name__": true, "instance": true, "job": true},
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "orange", "value": 3},
+              {"color": "red", "value": 5}
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {"id": "byName", "options": "Value"},
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {"mode": "gradient", "type": "color-background"}
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "id": 6,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": ["sum"],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [{"desc": true, "displayName": "Value"}]
+      },
+      "targets": [
+        {
+          "expr": "k8s_cluster_wide_sensitive_access_users_count",
+          "format": "table",
+          "instant": true,
+          "legendFormat": "",
+          "refId": "A"
+        }
+      ],
+      "title": "Cluster-wide Sensitive Access by Resource/Verb",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {"Time": true, "__name__": true, "instance": true, "job": true},
+            "indexByName": {},
+            "renameByName": {}
+          }
+        }
+      ],
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {"legend": false, "tooltip": false, "viz": false},
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {"type": "linear"},
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {"group": "A", "mode": "none"},
+            "thresholdsStyle": {"mode": "off"}
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "green", "value": null}]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {"mode": "single", "sort": "none"}
+      },
+      "targets": [
+        {
+          "expr": "sum by (namespace) (k8s_namespace_sensitive_access_users_count)",
+          "legendFormat": "{{namespace}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Sensitive Access Trend by Namespace",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "hideFrom": {"legend": false, "tooltip": false, "viz": false}
+          },
+          "mappings": []
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "id": 8,
+      "options": {
+        "displayLabels": ["name", "value"],
+        "legend": {
+          "displayMode": "list",
+          "placement": "right",
+          "showLegend": true,
+          "values": ["value"]
+        },
+        "pieType": "pie",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "tooltip": {"mode": "single", "sort": "none"}
+      },
+      "targets": [
+        {
+          "expr": "sum by (resource) (k8s_cluster_wide_sensitive_access_users_count)",
+          "legendFormat": "{{resource}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Cluster-wide Access Distribution by Resource",
+      "type": "piechart"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "continuous-RdYlGr"},
+          "custom": {"fillOpacity": 70, "hideFrom": {"legend": false, "tooltip": false, "viz": false}, "insertNulls": false, "lineWidth": 0, "spanNulls": false},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "green", "value": null}]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 20},
+      "id": 9,
+      "options": {
+        "calculate": false,
+        "cellGap": 1,
+        "color": {"exponent": 0.5, "fill": "dark-orange", "mode": "scheme", "reverse": true, "scale": "exponential", "scheme": "RdYlGn", "steps": 64},
+        "exemplars": {"color": "rgba(255,0,255,0.7)"},
+        "filterValues": {"le": 0},
+        "legend": {"show": true},
+        "rowsFrame": {"layout": "auto"},
+        "tooltip": {"mode": "single", "showColorScale": false, "yHistogram": false},
+        "yAxis": {"axisPlacement": "left", "reverse": false}
+      },
+      "targets": [
+        {
+          "expr": "k8s_namespace_sensitive_access_users_count{namespace=~\"$namespace\"}",
+          "format": "time_series",
+          "legendFormat": "{{namespace}}/{{resource}}/{{verb}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Namespace Sensitive Access Heatmap",
+      "type": "status-history"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 38,
+  "tags": ["kubernetes", "security", "prometheus", "rbac"],
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "hide": 0,
+        "includeAll": false,
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "allValue": ".*",
+        "current": {"selected": true, "text": ["All"], "value": ["$__all"]},
+        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "definition": "label_values(k8s_namespace_sensitive_access_users_count, namespace)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Namespace",
+        "multi": true,
+        "name": "namespace",
+        "options": [],
+        "query": {"qryType": 1, "query": "label_values(k8s_namespace_sensitive_access_users_count, namespace)", "refId": "PrometheusVariableQueryEditor-VariableQuery"},
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {"from": "now-1h", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Kubernetes Security Monitoring - Prometheus",
+  "uid": "k8s-security-prometheus",
+  "version": 1,
+  "weekStart": ""
 }

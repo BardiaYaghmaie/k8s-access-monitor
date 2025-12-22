@@ -1,65 +1,51 @@
 # Kubernetes Access Monitoring System
 
-Complete RBAC monitoring and analysis system for Kubernetes with Elasticsearch, Prometheus, and Grafana integration.
+RBAC monitoring system for Kubernetes with Prometheus metrics and Elasticsearch logging.
 
 ## Overview
 
-This system monitors Kubernetes RBAC permissions for specified users, collects access data every 5 minutes, stores it in Elasticsearch, and provides visualization through Grafana dashboards. It also exposes Prometheus metrics for sensitive access monitoring.
+Monitors Kubernetes RBAC permissions for specified users every 5 minutes:
+- **Collector** (CronJob): Queries K8s API for user access permissions
+- **Metrics Exporter**: Exposes Prometheus metrics for sensitive access
+- **Sidecar**: Forwards logs to Elasticsearch
+- **Dashboards**: Grafana dashboards for visualization
 
-### Components
+## Project Structure
 
-- **Main Application**: Collects RBAC data from Kubernetes API every 5 minutes
-- **Sidecar Container**: Processes logs and sends to Elasticsearch
-- **Metrics Exporter**: Exposes Prometheus metrics for security monitoring
-- **Grafana Dashboards**: Auto-provisioned dashboards for visualization
-
-## Prerequisites
-
-- Docker (for building images)
-- kubectl (configured to access your cluster)
-- Helm 3.0+
-- Kind (optional, for local testing)
-
-## Quick Start
-
-### Step 1: Create Kind Cluster (for local testing)
-
-```bash
-# Create a new Kind cluster
-kind create cluster --name k8s-access-monitor
-
-# Or use existing cluster
-kubectl config use-context kind-k8s-access-monitor
+```
+k8s-access-monitor/
+├── src/
+│   ├── main.py              # Main collector
+│   ├── metrics_exporter.py  # Prometheus metrics
+│   └── sidecar.py           # Elasticsearch forwarder
+├── helm/k8s-access-monitor/ # Helm chart
+├── dashboards/              # Grafana dashboards
+├── input.json               # User list to monitor
+├── Dockerfile*              # Container images
+└── test.py                  # Tests
 ```
 
-### Step 2: Build Docker Images
+## Setup
+
+### 1. Build Images
 
 ```bash
-# Build all three images
 docker build -f Dockerfile -t k8s-access-monitor:latest .
 docker build -f Dockerfile.sidecar -t k8s-access-monitor-sidecar:latest .
 docker build -f Dockerfile.metrics -t k8s-access-monitor-metrics:latest .
 
-# Load images into Kind cluster
-kind load docker-image k8s-access-monitor:latest --name k8s-access-monitor
-kind load docker-image k8s-access-monitor-sidecar:latest --name k8s-access-monitor
-kind load docker-image k8s-access-monitor-metrics:latest --name k8s-access-monitor
+# Load into Kind (for local testing)
+kind load docker-image k8s-access-monitor:latest k8s-access-monitor-metrics:latest k8s-access-monitor-sidecar:latest --name <cluster-name>
 ```
 
-### Step 3: Deploy Infrastructure
+### 2. Deploy Elasticsearch
 
 ```bash
-# Create namespaces
-kubectl create namespace monitoring
-kubectl create namespace k8s-access-monitor
-
-# Deploy Elasticsearch
-kubectl apply -f - <<EOF
+kubectl apply -f - <<'EOF'
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: elasticsearch
-  namespace: monitoring
 spec:
   replicas: 1
   selector:
@@ -72,188 +58,88 @@ spec:
     spec:
       containers:
       - name: elasticsearch
-        image: docker.elastic.co/elasticsearch/elasticsearch:7.10.0
+        image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
         ports:
         - containerPort: 9200
         env:
         - name: discovery.type
           value: single-node
-        - name: "ES_JAVA_OPTS"
+        - name: ES_JAVA_OPTS
           value: "-Xms512m -Xmx512m"
-        resources:
-          limits:
-            memory: 1Gi
-            cpu: 500m
+        - name: xpack.security.enabled
+          value: "false"
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: elasticsearch
-  namespace: monitoring
 spec:
   ports:
   - port: 9200
-    targetPort: 9200
   selector:
     app: elasticsearch
 EOF
 
-# Wait for Elasticsearch to be ready
-kubectl wait --for=condition=ready pod -l app=elasticsearch -n monitoring --timeout=120s
+kubectl wait --for=condition=ready pod -l app=elasticsearch --timeout=120s
 ```
 
-### Step 4: Deploy Prometheus
+### 3. Deploy Grafana with Auto-Imported Dashboards
 
 ```bash
-kubectl apply -f - <<EOF
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: prometheus
-  namespace: monitoring
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: prometheus
-  template:
-    metadata:
-      labels:
-        app: prometheus
-    spec:
-      containers:
-      - name: prometheus
-        image: prom/prometheus:v2.35.0
-        ports:
-        - containerPort: 9090
-        args:
-        - "--config.file=/etc/prometheus/prometheus.yml"
-        - "--storage.tsdb.path=/prometheus/"
-        - "--web.console.libraries=/etc/prometheus/console_libraries"
-        - "--web.console.templates=/etc/prometheus/consoles"
-        - "--storage.tsdb.retention.time=200h"
-        - "--web.enable-lifecycle"
-        volumeMounts:
-        - name: prometheus-config
-          mountPath: /etc/prometheus/
-        - name: prometheus-storage
-          mountPath: /prometheus/
-      volumes:
-      - name: prometheus-config
-        configMap:
-          name: prometheus-config
-      - name: prometheus-storage
-        emptyDir: {}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: prometheus
-  namespace: monitoring
-spec:
-  ports:
-  - port: 9090
-    targetPort: 9090
-  selector:
-    app: prometheus
----
+# Create dashboard ConfigMaps
+kubectl create configmap grafana-dashboards-prometheus \
+  --from-file=prometheus-security-dashboard.json=dashboards/prometheus-security-dashboard.json
+
+kubectl create configmap grafana-dashboards-elasticsearch \
+  --from-file=elasticsearch-access-dashboard.json=dashboards/elasticsearch-access-dashboard.json
+
+# Deploy Grafana
+kubectl apply -f - <<'EOF'
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: prometheus-config
-  namespace: monitoring
-data:
-  prometheus.yml: |
-    global:
-      scrape_interval: 15s
-      evaluation_interval: 15s
-    scrape_configs:
-    - job_name: 'prometheus'
-      static_configs:
-      - targets: ['localhost:9090']
-    - job_name: 'k8s-access-monitor'
-      static_configs:
-      - targets: ['k8s-access-monitor-metrics.k8s-access-monitor.svc.cluster.local:8000']
-      scrape_interval: 15s
-EOF
-
-# Wait for Prometheus
-kubectl wait --for=condition=ready pod -l app=prometheus -n monitoring --timeout=120s
-```
-
-### Step 5: Deploy Grafana with Auto-Provisioning
-
-```bash
-# Create Grafana admin secret
-kubectl create secret generic grafana-admin \
-  --from-literal=password=admin \
-  -n monitoring
-
-# Create dashboard provisioning config
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: grafana-dashboard-provisioning
-  namespace: monitoring
-data:
-  dashboards.yaml: |
-    apiVersion: 1
-    providers:
-    - name: 'default'
-      orgId: 1
-      folder: ''
-      type: file
-      disableDeletion: false
-      updateIntervalSeconds: 10
-      allowUiUpdates: true
-      options:
-        path: /etc/grafana/provisioning/dashboards
-        foldersFromFilesStructure: true
-EOF
-
-# Create dashboard ConfigMap
-kubectl create configmap grafana-dashboards \
-  --from-file=elasticsearch-access-dashboard.json=dashboards/elasticsearch-access-dashboard-unwrapped.json \
-  --from-file=prometheus-security-dashboard.json=dashboards/prometheus-security-dashboard-unwrapped.json \
-  -n monitoring
-
-# Create datasource provisioning
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: grafana-datasource-provisioning
-  namespace: monitoring
+  name: grafana-provisioning-datasources
 data:
   datasources.yaml: |
     apiVersion: 1
     datasources:
-    - name: Elasticsearch
-      type: elasticsearch
-      access: proxy
-      url: http://elasticsearch.monitoring.svc.cluster.local:9200
-      database: "k8s-access-logs"
-      jsonData:
-        index: "k8s-access-logs"
-        timeField: "@timestamp"
-        esVersion: "7.0.0"
     - name: Prometheus
       type: prometheus
       access: proxy
-      url: http://prometheus.monitoring.svc.cluster.local:9090
+      url: http://k8s-access-monitor-metrics:8000
       isDefault: true
+    - name: Elasticsearch
+      type: elasticsearch
+      access: proxy
+      url: http://elasticsearch:9200
+      database: "k8s-access-logs"
       jsonData:
-        timeInterval: "15s"
-EOF
-
-# Deploy Grafana
-kubectl apply -f - <<EOF
+        timeField: "@timestamp"
+        esVersion: "7.10.0"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-provisioning-dashboards
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+    - name: 'prometheus'
+      folder: 'Kubernetes Security'
+      type: file
+      options:
+        path: /var/lib/grafana/dashboards/prometheus
+    - name: 'elasticsearch'
+      folder: 'Kubernetes Security'
+      type: file
+      options:
+        path: /var/lib/grafana/dashboards/elasticsearch
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
-  namespace: monitoring
 spec:
   replicas: 1
   selector:
@@ -266,124 +152,91 @@ spec:
     spec:
       containers:
       - name: grafana
-        image: grafana/grafana:8.5.0
+        image: grafana/grafana:10.0.0
         ports:
         - containerPort: 3000
         env:
         - name: GF_SECURITY_ADMIN_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: grafana-admin
-              key: password
-        - name: GF_USERS_ALLOW_SIGN_UP
-          value: "false"
+          value: "admin"
         volumeMounts:
-        - name: grafana-storage
-          mountPath: /var/lib/grafana
-        - name: dashboard-provisioning
-          mountPath: /etc/grafana/provisioning/dashboards
-        - name: dashboards
-          mountPath: /etc/grafana/provisioning/dashboards/default
-        - name: datasource-provisioning
+        - name: datasources
           mountPath: /etc/grafana/provisioning/datasources
+        - name: dashboard-providers
+          mountPath: /etc/grafana/provisioning/dashboards
+        - name: dashboards-prometheus
+          mountPath: /var/lib/grafana/dashboards/prometheus
+        - name: dashboards-elasticsearch
+          mountPath: /var/lib/grafana/dashboards/elasticsearch
       volumes:
-      - name: grafana-storage
-        emptyDir: {}
-      - name: dashboard-provisioning
+      - name: datasources
         configMap:
-          name: grafana-dashboard-provisioning
-      - name: dashboards
+          name: grafana-provisioning-datasources
+      - name: dashboard-providers
         configMap:
-          name: grafana-dashboards
-      - name: datasource-provisioning
+          name: grafana-provisioning-dashboards
+      - name: dashboards-prometheus
         configMap:
-          name: grafana-datasource-provisioning
+          name: grafana-dashboards-prometheus
+      - name: dashboards-elasticsearch
+        configMap:
+          name: grafana-dashboards-elasticsearch
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: grafana
-  namespace: monitoring
 spec:
   ports:
   - port: 3000
-    targetPort: 3000
   selector:
     app: grafana
 EOF
 
-# Wait for Grafana
-kubectl wait --for=condition=ready pod -l app=grafana -n monitoring --timeout=120s
+kubectl wait --for=condition=ready pod -l app=grafana --timeout=120s
 ```
 
-### Step 6: Deploy Application
+### 4. Deploy k8s-access-monitor
 
 ```bash
-# Install via Helm
-cd helm/k8s-access-monitor
-helm install k8s-access-monitor . \
-  --namespace k8s-access-monitor \
-  --create-namespace
-
-# Update ConfigMap with full user list
-cd ../..
-kubectl create configmap k8s-access-monitor-config \
-  --from-file=input.json=input.json \
-  -n k8s-access-monitor \
-  --dry-run=client -o yaml | kubectl apply -f -
-
-# Restart deployment to pick up new ConfigMap
-kubectl rollout restart deployment/k8s-access-monitor -n k8s-access-monitor
-
-# Wait for deployment to be ready
-kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=k8s-access-monitor -n k8s-access-monitor --timeout=120s
+helm upgrade --install k8s-access-monitor ./helm/k8s-access-monitor \
+  --set-file mainApp.inputConfig=input.json \
+  --set metricsExporter.serviceMonitor.enabled=false \
+  --set sidecar.elasticsearch.url=http://elasticsearch:9200
 ```
 
-## Access Dashboards
+## Updating User List
+
+1. Edit `input.json` - add/remove users in the `internals` section:
+
+```json
+"internals": {
+  "user-uuid": {
+    "username": "user.name",
+    "groups": ["group1", "group2"],
+    "first_name": "First",
+    "last_name": "Last"
+  }
+}
+```
+
+2. Redeploy:
 
 ```bash
-# Port forward to Grafana
-kubectl port-forward svc/grafana -n monitoring 3000:3000
-
-# Open http://localhost:3000 in browser
-# Login: admin / admin
-# Dashboards:
-#   - Kubernetes Security Monitoring - Prometheus (✅ Working)
-#   - Kubernetes Access Monitoring - Elasticsearch (⚠️ Has errors - panels show "TypeError: e.split is not a function")
+helm upgrade k8s-access-monitor ./helm/k8s-access-monitor \
+  --set-file mainApp.inputConfig=input.json \
+  --set metricsExporter.serviceMonitor.enabled=false
 ```
 
-**Note**: The Elasticsearch dashboard has compatibility issues with Grafana 8.5.0 Elasticsearch plugin. The Prometheus dashboard works correctly. The Elasticsearch dashboard may need manual panel configuration in Grafana UI.
+## Accessing Dashboards
 
-## Architecture
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   CronJob       │    │   Deployment    │    │   Prometheus    │
-│                 │    │                 │    │                 │
-│ • Main App      │    │ • Sidecar       │    │ • Metrics       │
-│ • Collects RBAC │    │ • Log Processor │    │ • Security      │
-│ • Runs every 5m │    │ • Elasticsearch │    │ • Alerts        │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         └───────────────────────┼───────────────────────┘
-                                 │
-                    ┌─────────────────┐
-                    │   Grafana       │
-                    │                 │
-                    │ • Access Dash   │
-                    │ • Security Dash │
-                    │ • Auto-imported │
-                    └─────────────────┘
+```bash
+kubectl port-forward svc/grafana 3000:3000
 ```
 
-## Metrics
+Open http://localhost:3000
+- **Username**: admin
+- **Password**: admin
 
-Two Prometheus metrics are exposed:
-
-1. **k8s_namespace_sensitive_access_users_count**
-   - Labels: `namespace`, `verb`, `resource`
-   - Example: `k8s_namespace_sensitive_access_users_count{namespace="kube-system", verb="create", resource="pods"} 4`
-
-2. **k8s_cluster_wide_sensitive_access_users_count**
-   - Labels: `resource`, `verb`
-   - Example: `k8s_cluster_wide_sensitive_access_users_count{resource="secrets", verb="delete"} 2`
+Dashboards are auto-imported in the "Kubernetes Security" folder:
+- **Prometheus Security Dashboard** - Security metrics and alerts
+- **Elasticsearch Access Dashboard** - User access logs and history

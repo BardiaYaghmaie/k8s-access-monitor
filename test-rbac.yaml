@@ -1,0 +1,190 @@
+# Test RBAC resources for K8s Access Monitor
+# This creates roles and bindings for the demo users defined in input.json
+
+---
+# ClusterRole for sre-production group - extensive access
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: sre-production-role
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "pods/exec"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+---
+# ClusterRoleBinding for sre-production group
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: sre-production-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: sre-production-role
+subjects:
+  - kind: Group
+    name: sre-production
+    apiGroup: rbac.authorization.k8s.io
+
+---
+# ClusterRole for cluster-readonly group - read-only access
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cluster-readonly-role
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps", "namespaces"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch"]
+
+---
+# ClusterRoleBinding for cluster-readonly group
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cluster-readonly-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-readonly-role
+subjects:
+  - kind: Group
+    name: cluster-readonly
+    apiGroup: rbac.authorization.k8s.io
+
+---
+# Role for devops group in kube-system namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: devops-role
+  namespace: kube-system
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "configmaps", "services"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+
+---
+# RoleBinding for devops group in kube-system
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: devops-binding
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: devops-role
+subjects:
+  - kind: Group
+    name: devops
+    apiGroup: rbac.authorization.k8s.io
+
+---
+# Role for dev group in default namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: dev-role
+  namespace: default
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "configmaps", "services"]
+    verbs: ["get", "list", "watch", "create", "update"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "create", "update"]
+
+---
+# RoleBinding for dev group in default namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: dev-binding
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: dev-role
+subjects:
+  - kind: Group
+    name: dev
+    apiGroup: rbac.authorization.k8s.io
+
+---
+# Role for qa group in default namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: qa-role
+  namespace: default
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch"]
+
+---
+# RoleBinding for qa group in default namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: qa-binding
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: qa-role
+subjects:
+  - kind: Group
+    name: qa
+    apiGroup: rbac.authorization.k8s.io
+
+---
+# Direct user binding for mohammad.jafari (admin-like access)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: mohammad-jafari-admin-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: sre-production-role
+subjects:
+  - kind: User
+    name: mohammad.jafari
+    apiGroup: rbac.authorization.k8s.io
+

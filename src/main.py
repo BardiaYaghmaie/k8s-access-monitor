@@ -8,7 +8,7 @@ import json
 import os
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
 import base64
 import logging
@@ -187,16 +187,28 @@ class KubernetesAccessMonitor:
 
             if self._user_matches_subjects(username, subjects):
                 role_name = role_ref.get('name')
-                role_key = f"{namespace}/{role_name}"
-
-                if role_key in roles:
-                    permissions = self._extract_permissions_from_role(roles[role_key])
-                    if permissions:
-                        accesses.append({
-                            'namespace': namespace,
-                            'resources': permissions,
-                            'is_cluster': False
-                        })
+                role_kind = role_ref.get('kind', 'Role')
+                
+                # RoleBindings can reference either Roles or ClusterRoles
+                if role_kind == 'ClusterRole':
+                    if role_name in cluster_roles:
+                        permissions = self._extract_permissions_from_role(cluster_roles[role_name])
+                        if permissions:
+                            accesses.append({
+                                'namespace': namespace,
+                                'resources': permissions,
+                                'is_cluster': False
+                            })
+                else:
+                    role_key = f"{namespace}/{role_name}"
+                    if role_key in roles:
+                        permissions = self._extract_permissions_from_role(roles[role_key])
+                        if permissions:
+                            accesses.append({
+                                'namespace': namespace,
+                                'resources': permissions,
+                                'is_cluster': False
+                            })
 
         return accesses
 
@@ -272,7 +284,7 @@ class KubernetesAccessMonitor:
         """Main method to collect accesses and generate logs"""
         logger.info("Starting access collection...")
 
-        timestamp = datetime.utcnow().isoformat() + 'Z'
+        timestamp = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
 
         # Process each user
         for username, user_info in self.users_data.items():

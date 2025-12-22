@@ -41,39 +41,9 @@ mainApp:
     # JWT secret for token signing
     jwtSecret: "dummy-jwt-secret" # CHANGE IN PRODUCTION!
 
-  inputConfig: |
-    {
-      "metadata": {
-        "timestamp": "2025-12-10T15:00:00Z",
-        "version": "v1"
-      },
-      "data": [
-        {
-          "configs": [
-            {
-              "id": "36c0e6b3-ce48-4491-a591-47aebeb3d24f",
-              "data": "eyJzb3VyY2UiOiAiQUQiLCAibGFzdF91cGRhdGVkIjogIjIwMjUtMTAtMTJUMTM6MjI6MDNaIiwgInJvd3NfYWZmZWN0ZWQiOiAiOCIsICJyZXBsYWNlIjogZmFsc2V9Cg=="
-            }
-          ],
-          "internals": {
-            "03d898bf-664b-45e0-a57e-88006ab12929": {
-              "source": "36c0e6b3-ce48-4491-a591-47aebeb3d24f",
-              "username": "mohammad.jafari",
-              "groups": ["sre-production", "cluster-readonly"],
-              "first_name": "Mohammad",
-              "last_name": "Jafari"
-            },
-            "f1c7a2d4-89b0-4c1f-a8f2-9876abcd1234": {
-              "source": "36c0e6b3-ce48-4491-a591-47aebeb3d24f",
-              "username": "ali.ahmadi",
-              "groups": ["devops", "sre-production"],
-              "first_name": "Ali",
-              "last_name": "Ahmadi"
-            }
-          }
-        }
-      ]
-    }
+  # Input config is loaded from input.json file during deployment
+  # Use: helm install ... --set-file mainApp.inputConfig=input.json
+  inputConfig: ""
   resources:
     limits:
       cpu: 500m
