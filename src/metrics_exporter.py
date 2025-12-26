@@ -190,12 +190,19 @@ class MetricsExporter:
 
             role_ref = binding.role_ref
             role_name = role_ref.name
-
-            role_key = f"{namespace}/{role_name}"
-            if role_key not in roles:
-                continue
-
-            role = roles[role_key]
+            role_kind = role_ref.kind or 'Role'
+            
+            # RoleBindings can reference either Roles or ClusterRoles
+            if role_kind == 'ClusterRole':
+                if role_name not in cluster_roles:
+                    continue
+                role = cluster_roles[role_name]
+            else:
+                role_key = f"{namespace}/{role_name}"
+                if role_key not in roles:
+                    continue
+                role = roles[role_key]
+            
             permissions = self._extract_permissions(role)
 
             # Check each user

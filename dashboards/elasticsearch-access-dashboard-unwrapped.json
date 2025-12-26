@@ -20,17 +20,8 @@
       "targets": [
         {
           "refId": "A",
-          "query": {
-            "bool": {
-              "must": [
-                {
-                  "exists": {
-                    "field": "username"
-                  }
-                }
-              ]
-            }
-          },
+          "query": "",
+          "alias": "",
           "metrics": [
             {
               "id": "1",
@@ -41,7 +32,7 @@
             {
               "id": "2",
               "type": "terms",
-              "field": "username",
+              "field": "username.keyword",
               "settings": {
                 "size": "100",
                 "order": "desc",
@@ -70,33 +61,8 @@
       "targets": [
         {
           "refId": "A",
-          "query": {
-            "bool": {
-              "must": [
-                {
-                  "nested": {
-                    "path": "flattened_accesses",
-                    "query": {
-                      "bool": {
-                        "must": [
-                          {
-                            "term": {
-                              "flattened_accesses.resource": "$resource"
-                            }
-                          },
-                          {
-                            "term": {
-                              "flattened_accesses.verb": "$verb"
-                            }
-                          }
-                        ]
-                      }
-                    }
-                  }
-                }
-              ]
-            }
-          },
+          "query": "",
+          "alias": "",
           "timeField": "@timestamp"
         }
       ],
@@ -118,17 +84,8 @@
       "targets": [
         {
           "refId": "A",
-          "query": {
-            "bool": {
-              "must": [
-                {
-                  "exists": {
-                    "field": "@timestamp"
-                  }
-                }
-              ]
-            }
-          },
+          "query": "",
+          "alias": "",
           "metrics": [
             {
               "id": "1",
@@ -166,17 +123,8 @@
       "targets": [
         {
           "refId": "A",
-          "query": {
-            "bool": {
-              "must": [
-                {
-                  "term": {
-                    "username": "$username"
-                  }
-                }
-              ]
-            }
-          },
+          "query": "",
+          "alias": "",
           "timeField": "@timestamp"
         }
       ],
@@ -202,7 +150,7 @@
           "type": "elasticsearch",
           "uid": "P31C819B24CF3C3C7"
         },
-        "query": "{\"find\":\"fields\",\"type\":\"keyword\",\"field\":\"username\"}",
+        "query": "{\"find\":\"fields\",\"type\":\"keyword\",\"field\":\"username.keyword\"}",
         "current": {
           "selected": false,
           "text": "All",
