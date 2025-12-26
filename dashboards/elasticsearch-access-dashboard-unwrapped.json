@@ -20,7 +20,7 @@
       "targets": [
         {
           "refId": "A",
-          "query": "",
+          "query": "$username",
           "alias": "",
           "metrics": [
             {
@@ -52,7 +52,7 @@
     },
     {
       "id": 2,
-      "title": "Users with Specific Permissions",
+      "title": "Users with Specific Permissions (Filter: $verb on $resource)",
       "type": "table",
       "datasource": {
         "type": "elasticsearch",
@@ -61,8 +61,26 @@
       "targets": [
         {
           "refId": "A",
-          "query": "",
+          "query": "$username AND flattened_accesses.resource.keyword:$resource AND flattened_accesses.verb.keyword:$verb",
           "alias": "",
+          "metrics": [
+            {
+              "id": "1",
+              "type": "count"
+            }
+          ],
+          "bucketAggs": [
+            {
+              "id": "2",
+              "type": "terms",
+              "field": "username.keyword",
+              "settings": {
+                "size": "100",
+                "order": "desc",
+                "orderBy": "_count"
+              }
+            }
+          ],
           "timeField": "@timestamp"
         }
       ],
@@ -75,7 +93,7 @@
     },
     {
       "id": 3,
-      "title": "Access Timeline",
+      "title": "Access Timeline (Filter: $verb on $resource)",
       "type": "histogram",
       "datasource": {
         "type": "elasticsearch",
@@ -84,7 +102,7 @@
       "targets": [
         {
           "refId": "A",
-          "query": "",
+          "query": "$username AND flattened_accesses.resource.keyword:$resource AND flattened_accesses.verb.keyword:$verb",
           "alias": "",
           "metrics": [
             {
@@ -114,7 +132,7 @@
     },
     {
       "id": 4,
-      "title": "User Access Details",
+      "title": "User Access Details Table (All accesses for selected user)",
       "type": "table",
       "datasource": {
         "type": "elasticsearch",
@@ -123,7 +141,7 @@
       "targets": [
         {
           "refId": "A",
-          "query": "",
+          "query": "$username",
           "alias": "",
           "timeField": "@timestamp"
         }
@@ -161,7 +179,7 @@
         "regex": "",
         "skipUrlSync": false,
         "includeAll": true,
-        "allValue": null,
+        "allValue": "*",
         "multi": false,
         "sort": 0
       },
